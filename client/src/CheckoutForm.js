@@ -2,7 +2,8 @@ import { PaymentElement } from "@stripe/react-stripe-js";
 import { useState } from "react";
 import { useStripe, useElements } from "@stripe/react-stripe-js";
 
-export default function CheckoutForm() {
+export default function CheckoutForm(props) {
+  const { clientSecret } = props;
   const stripe = useStripe();
   const elements = useElements();
 
@@ -18,10 +19,14 @@ export default function CheckoutForm() {
       return;
     }
 
+    const { error: submitError } = await elements.submit();
+    if (submitError) return;
+
     setIsProcessing(true);
 
     const { error } = await stripe.confirmPayment({
       elements,
+      clientSecret: clientSecret,
       confirmParams: {
         // Make sure to change this to your payment completion page
         return_url: `${window.location.origin}/completion`,
@@ -37,10 +42,36 @@ export default function CheckoutForm() {
     setIsProcessing(false);
   };
 
+  const paymentElementOptions = {
+    layout: {
+      type: "accordion",
+      defaultCollapsed: false,
+      radios: true,
+      spacedAccordionItems: true,
+    },
+    defaultValues: {},
+    terms: {
+      bancontact: "never",
+      card: "never",
+      ideal: "never",
+      sepaDebit: "never",
+      sofort: "never",
+      auBecsDebit: "never",
+      usBankAccount: "never",
+    },
+  };
+
   return (
-    <form id="payment-form" onSubmit={handleSubmit}>
-      <PaymentElement id="payment-element" />
-      <button disabled={isProcessing || !stripe || !elements} id="submit">
+    <form
+      id="payment-form"
+      onSubmit={handleSubmit}>
+      <PaymentElement
+        id="payment-element"
+        options={paymentElementOptions}
+      />
+      <button
+        disabled={isProcessing || !stripe || !elements}
+        id="submit">
         <span id="button-text">
           {isProcessing ? "Processing ... " : "Pay now"}
         </span>
